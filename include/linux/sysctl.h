@@ -27,6 +27,7 @@
 #include <linux/wait.h>
 #include <linux/rbtree.h>
 #include <linux/uidgid.h>
+#include <linux/kobject.h>
 #include <uapi/linux/sysctl.h>
 
 /* For the /proc/sys support */
@@ -136,6 +137,9 @@ struct ctl_table
 struct ctl_node {
 	struct rb_node node;
 	struct ctl_table_header *header;
+#ifdef CONFIG_SYSCTL_IN_SYSFS
+	struct attribute attr;
+#endif
 };
 
 /* struct ctl_table_header is used to maintain dynamic lists of
@@ -158,6 +162,10 @@ struct ctl_table_header
 	struct ctl_dir *parent;
 	struct ctl_node *node;
 	struct hlist_head inodes; /* head for proc_inode->sysctl_inodes */
+#ifdef CONFIG_SYSCTL_IN_SYSFS
+	struct kobject kobj;
+	void *da;
+#endif
 };
 
 struct ctl_dir {
@@ -173,6 +181,7 @@ struct ctl_table_set {
 
 struct ctl_table_root {
 	struct ctl_table_set default_set;
+	enum kobj_ns_type ns_type;
 	struct ctl_table_set *(*lookup)(struct ctl_table_root *root);
 	void (*set_ownership)(struct ctl_table_header *head,
 			      struct ctl_table *table,

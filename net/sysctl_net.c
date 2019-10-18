@@ -74,6 +74,7 @@ static struct ctl_table_root net_sysctl_root = {
 	.lookup = net_ctl_header_lookup,
 	.permissions = net_ctl_permissions,
 	.set_ownership = net_ctl_set_ownership,
+	.ns_type = KOBJ_NS_TYPE_NET,
 };
 
 static int __net_init sysctl_net_init(struct net *net)
@@ -92,27 +93,9 @@ static struct pernet_operations sysctl_pernet_ops = {
 	.exit = sysctl_net_exit,
 };
 
-static struct ctl_table_header *net_header;
 __init int net_sysctl_init(void)
 {
-	static struct ctl_table empty[1];
-	int ret = -ENOMEM;
-	/* Avoid limitations in the sysctl implementation by
-	 * registering "/proc/sys/net" as an empty directory not in a
-	 * network namespace.
-	 */
-	net_header = register_sysctl("net", empty);
-	if (!net_header)
-		goto out;
-	ret = register_pernet_subsys(&sysctl_pernet_ops);
-	if (ret)
-		goto out1;
-out:
-	return ret;
-out1:
-	unregister_sysctl_table(net_header);
-	net_header = NULL;
-	goto out;
+	return register_pernet_subsys(&sysctl_pernet_ops);
 }
 
 struct ctl_table_header *register_net_sysctl(struct net *net,

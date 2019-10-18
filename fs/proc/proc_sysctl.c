@@ -14,6 +14,7 @@
 #include <linux/mm.h>
 #include <linux/module.h>
 #include <linux/bpf-cgroup.h>
+#include "proc_sysctl_sysfs.h"
 #include "internal.h"
 
 static const struct dentry_operations proc_sys_dentry_operations;
@@ -1362,6 +1363,11 @@ struct ctl_table_header *__register_sysctl_table(
 			goto fail;
 	}
 
+	header->da = sysfs_ctl_register_table(set, path, table);
+	if (IS_ERR(header->da)) {
+		goto fail;
+	}
+
 	spin_lock(&sysctl_lock);
 	if (insert_header(dir, header))
 		goto fail_put_dir_locked;
@@ -1374,6 +1380,7 @@ struct ctl_table_header *__register_sysctl_table(
 fail_put_dir_locked:
 	drop_sysctl_table(&dir->header);
 	spin_unlock(&sysctl_lock);
+	sysfs_ctl_unregister_table(header->da);
 fail:
 	kfree(header);
 	dump_stack();
@@ -1678,6 +1685,8 @@ void unregister_sysctl_table(struct ctl_table_header * header)
 	if (header == NULL)
 		return;
 
+	sysfs_ctl_unregister_table(header->da);
+
 	nr_subheaders = count_subheaders(header->ctl_table_arg);
 	if (unlikely(nr_subheaders > 1)) {
 		struct ctl_table_header **subheaders;
@@ -1718,6 +1727,7 @@ int __init proc_sys_init(void)
 {
 	struct proc_dir_entry *proc_sys_root;
 
+	sysfs_ctl_init();
 	proc_sys_root = proc_mkdir("sys", NULL);
 	proc_sys_root->proc_iops = &proc_sys_dir_operations;
 	proc_sys_root->proc_fops = &proc_sys_dir_file_operations;
