@@ -892,11 +892,11 @@ static void sctp_cmd_new_state(struct sctp_cmd_seq *cmds,
 	if (sctp_state(asoc, ESTABLISHED) ||
 	    sctp_state(asoc, CLOSED) ||
 	    sctp_state(asoc, SHUTDOWN_RECEIVED)) {
-		/* Wake up any processes waiting in the asoc's wait queue in
+		/* Wake up all processes waiting in the asoc's wait queue in
 		 * sctp_wait_for_connect() or sctp_wait_for_sndbuf().
 		 */
 		if (waitqueue_active(&asoc->wait))
-			wake_up_interruptible(&asoc->wait);
+			wake_up_interruptible_all(&asoc->wait);
 
 		/* Wake up any processes waiting in the sk's sleep queue of
 		 * a TCP-style or UDP-style peeled-off socket in
